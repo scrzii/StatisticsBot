@@ -1,13 +1,14 @@
 ﻿using SkiaSharp;
 using StatisticsBot.Extensions;
-using StatisticsBot.Sql.Models;
+using StatisticsBot.Services.Data.Models;
 
-namespace StatisticsBot.Render;
+namespace StatisticsBot.Services;
 
-public static class ChartGenerator
+public class RenderService
 {
-    private const int Width = 500;
-    private const int Height = 400;
+    public const int Width = 500;
+    public const int Height = 400;
+
     private const int MaxLength = 190;
     private const int CenterX = 200;
     private const int CenterY = 150;
@@ -16,17 +17,17 @@ public static class ChartGenerator
 
     private static SKColor _background = new SKColor(80, 80, 80);
     private static SKColor _background2 = new SKColor(100, 100, 100);
-    private static SKFont _font = new SKFont(SKTypeface.FromFamilyName("Cascadia Mono", 
+    private static SKFont _font = new SKFont(SKTypeface.FromFamilyName("Cascadia Mono",
         new SKFontStyle(1, 0, SKFontStyleSlant.Upright)), 14);
 
-    public static void Generate(List<User> users)
+    public async Task<byte[]> Generate(List<User> users)
     {
         var recorder = new SKPictureRecorder();
         var canvas = recorder.BeginRecording(SKRect.Create(Width, Height));
 
         canvas.Clear(_background);
         canvas.Save();
-        
+
 
         FillChart(canvas, 1, 1, 1, _background2, true);
 
@@ -51,11 +52,11 @@ public static class ChartGenerator
         paint.TextAlign = SKTextAlign.Left;
         foreach (var user in users)
         {
-            var hColor = SKColor.Parse(user.Color);
-            var color = hColor.ChangeAlpha(50);
+            var hColor = user.Color;
+            var color = hColor.SetAlpha(50);
 
             var honor = (double)(user.Honor / (double)honorMax);
-            var rank = (double)(user.Rank/ (double)rankMax);
+            var rank = (double)(user.Rank / (double)rankMax);
             var total = (double)(user.TotalTasks / (double)totalMax);
             FillChart(canvas, honor, rank, total, color);
 
@@ -75,11 +76,24 @@ public static class ChartGenerator
         var picture = recorder.EndRecording();
         var image = SKImage.FromPicture(picture, new SKSizeI(Width, Height));
         using var data = image.Encode(SKEncodedImageFormat.Png, 0);
-        using var imageStream = File.OpenWrite("chart.png");
-        data.SaveTo(imageStream);
+        using var stream = new MemoryStream();
+        data.SaveTo(stream);
+        var result = await stream.ReadAllBytes();
+
+        if (Config.Instance.IsDev)
+        {
+            await SaveToFile("chart.png", result);
+        }
+
+        return result;
     }
 
-    private static void FillChart(SKCanvas canvas, double honor, double rank, double total, SKColor color, bool text = false)
+    public static async Task SaveToFile(string filename, byte[] data)
+    {
+        await File.WriteAllBytesAsync(filename, data);
+    }
+
+    private void FillChart(SKCanvas canvas, double honor, double rank, double total, SKColor color, bool text = false)
     {
         var paint = new SKPaint()
         {
@@ -114,19 +128,19 @@ public static class ChartGenerator
         }
     }
 
-    private static SKPoint GetPoint(SKPoint direction, double length)
+    private SKPoint GetPoint(SKPoint direction, double length)
     {
         return new SKPoint((int)(CenterX + direction.X * length), (int)(CenterY + direction.Y * length));
     }
 
-    private static void FillPath(SKCanvas canvas, SKPaint paint, SKPoint[] points)
+    private void FillPath(SKCanvas canvas, SKPaint paint, SKPoint[] points)
     {
         var path = new SKPath();
         path.AddPoly(points);
         canvas.DrawPath(path, paint);
     }
 
-    private static SKPoint GenerateDirection(double deg)
+    private SKPoint GenerateDirection(double deg)
     {
         var rad = Math.PI / 180 * deg;
         return new SKPoint((float)Math.Cos(rad), (float)-Math.Sin(rad));

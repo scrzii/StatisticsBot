@@ -1,17 +1,57 @@
-﻿using SkiaSharp;
-using StatisticsBot.Sql;
+﻿using Microsoft.EntityFrameworkCore;
+using SkiaSharp;
+using StatisticsBot.Services;
+using StatisticsBot.Services.Data;
 using StatisticsBot.Utils;
 using Telegram.Bot;
+using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using User = StatisticsBot.Services.Data.Models.User;
 
 namespace StatisticsBot.MessageHandlers;
-public class CommandHandler
+
+public class CommandHandler : IUpdateHandler
 {
+    private readonly DataContext _db;
+    private readonly UpdateService _updateService;
+
+    public CommandHandler(DataContext db, UpdateService updateService)
+    {
+        _db = db;
+        _updateService = updateService;
+    }
+
     private const string SetCWCommand = "setcw";
     private const string RemoveCWCommand = "removecw";
     private const string ChangeColorCommand = "changecolor";
 
-    public static async Task HandleCommand(ITelegramBotClient bot, Update update)
+    public async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken cancellationToken)
+    {
+        try
+        {
+            switch (update.Type)
+            {
+                case UpdateType.Message:
+                    if (update.Message?.Text?.StartsWith("/") == true)
+                    {
+                        await HandleCommand(bot, update);
+                    }
+                    return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception throwed: {ex.Message}");
+        }
+    }
+
+    public async Task HandlePollingErrorAsync(ITelegramBotClient bot, Exception exception, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"Update exception: {exception.Message}");
+    }
+
+    private async Task HandleCommand(ITelegramBotClient bot, Update update)
     {
         var args = update.Message.Text.Split();
         var command = args[0].Replace("/", "").ToLower().Split("@").FirstOrDefault();
@@ -42,8 +82,13 @@ public class CommandHandler
         }
     }
 
-    private static async Task<bool> IsFromAdmin(ITelegramBotClient bot, Update update)
+    private async Task<bool> IsFromAdmin(ITelegramBotClient bot, Update update)
     {
+        if (update.Message.Chat.Type == ChatType.Private)
+        {
+            return true;
+        }
+
         var admins = await bot.GetChatAdministratorsAsync(update.Message.Chat.Id);
         foreach (var admin in admins)
         {
@@ -56,24 +101,24 @@ public class CommandHandler
         return false;
     }
 
-    private static async Task SetCodewarsLogin(ITelegramBotClient bot, long chatId, long tgUserId, string[] args)
+    private async Task SetCodewarsLogin(ITelegramBotClient bot, long chatId, long tgUserId, string[] args)
     {
-        var user = await DbRepository.ReadUser(tgUserId);
+        var user = await _db.Users.FirstOrDefaultAsync(x => tgUserId == x.TelegramId);
 
         if (user == null)
         {
-            user = new Sql.Models.User(tgUserId, chatId, args[0]);
-            await DbRepository.CreateUser(user);
+            user = new User(tgUserId, chatId, args[0]);
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
             await bot.SendTextMessageAsync(chatId, $"Логин {args[0]} успешно добавлен");
             return;
         }
 
         user.CodewarsLogin = args[0];
-        await DbRepository.UpdateUser(user);
-        await MainService.UpdateAll();
+        await _db.SaveChangesAsync();
     }
 
-    private static async Task RemoveCodewarsLogin(ITelegramBotClient bot, long chatId, bool isFromAdmin, string[] args)
+    private async Task RemoveCodewarsLogin(ITelegramBotClient bot, long chatId, bool isFromAdmin, string[] args)
     {
         if (!isFromAdmin)
         {
@@ -81,13 +126,14 @@ public class CommandHandler
             return;
         }
 
-        var user = (await DbRepository.ReadAllUsers()).FirstOrDefault(x => x.CodewarsLogin.ToLower() == args[0].ToLower());
-        await DbRepository.RemoveUser(user.ChatId);
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.CodewarsLogin.ToLower() == args[0].ToLower());
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+
         await bot.SendTextMessageAsync(chatId, "Логин успешнно удален");
-        await MainService.UpdateAll();
     }
 
-    private static async Task ChangeUserColor(ITelegramBotClient bot, long chatId, bool isFromAdmin, long telegramId, string[] args)
+    private async Task ChangeUserColor(ITelegramBotClient bot, long chatId, bool isFromAdmin, long telegramId, string[] args)
     {
         long to = telegramId;
         SKColor color = SKColor.Empty;
@@ -104,13 +150,13 @@ public class CommandHandler
                 }
                 else
                 {
-                    to = (await DbRepository.ReadUser(args[0])).TelegramId;
+                    to = (await _db.Users.FirstOrDefaultAsync(x => x.CodewarsLogin == args[0])).TelegramId;
                     color = ColorUtils.GenerateRandom();
                 }
                 break;
             case 2:
                 color = SKColor.Parse(args[1]);
-                to = (await DbRepository.ReadUser(args[0])).TelegramId;
+                to = (await _db.Users.FirstOrDefaultAsync(x => x.CodewarsLogin == args[0])).TelegramId;
                 break;
             default:
                 await bot.SendTextMessageAsync(chatId, "Неверное количество аргументов (их должно быть от 0 до 2)");
@@ -118,10 +164,9 @@ public class CommandHandler
         }
 
         await ChangeUserColor(bot, chatId, isFromAdmin, telegramId, to, color);
-        await MainService.UpdateAll();
     }
 
-    private static async Task ChangeUserColor(ITelegramBotClient bot, long chatId, bool isFromAdmin, 
+    private async Task ChangeUserColor(ITelegramBotClient bot, long chatId, bool isFromAdmin, 
         long from, long to, SKColor newColor)
     {
         if (from != to && !isFromAdmin)
@@ -130,10 +175,11 @@ public class CommandHandler
             return;
         }
 
-        var user = await DbRepository.ReadUser(to);
-        user.Color = newColor.ToString();
-        await DbRepository.UpdateUser(user);
-        await MainService.UpdateChart();
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.TelegramId == to);
+        user.Color = newColor;
+        await _db.SaveChangesAsync();
+
+        await _updateService.UpdateChart();
         await bot.SendTextMessageAsync(chatId, "Цвет успешно изменен");
     }
 }

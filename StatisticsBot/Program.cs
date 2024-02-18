@@ -1,11 +1,9 @@
-﻿using Microsoft.Data.Sqlite;
-using Quartz;
-using Quartz.Impl;
-using StatisticsBot.Render;
-using StatisticsBot.ResultParser;
-using StatisticsBot.Sql;
-using StatisticsBot.Sql.Models;
-using System.Linq;
+﻿using Microsoft.Extensions.DependencyInjection;
+using StatisticsBot.Jobs;
+using StatisticsBot.MessageHandlers;
+using StatisticsBot.Services.Data;
+using Telegram.Bot;
+using Telegram.Bot.Polling;
 
 namespace StatisticsBot;
 
@@ -14,25 +12,27 @@ public class Program
     public static async Task Main(string[] args)
     {
         Config.Init();
+        var provider = DI.ConfigureServices();
+        await ApplyMigrations(provider);
 
-        if (args.Any(x => x.ToLower() == "--init"))
-        {
-            await DbRepository.Init();
-            return;
-        }
+        await JobService.StartJobs(provider);
+        StartBot(provider);
 
-        var scheduler = await StdSchedulerFactory.GetDefaultScheduler();
-        await scheduler.Start();
+        await Task.Delay(-1);
+    }
 
-        var updateJob = JobBuilder.Create<UpdateJob>().Build();
-        var trigger = TriggerBuilder.Create()
-            .WithIdentity("UpdateJobTrigger")
-            .StartNow()
-            .WithSimpleSchedule(x => x.WithIntervalInSeconds(60).RepeatForever())
-            .Build();
+    private static void StartBot(IServiceProvider provider)
+    {
+        var bot = provider.GetService<ITelegramBotClient>();
+        var handler = provider.GetService<CommandHandler>();
+        bot.StartReceiving(handler, new ReceiverOptions { ThrowPendingUpdates = true });
 
-        await scheduler.ScheduleJob(updateJob, trigger);
+        Console.WriteLine("Bot started");
+    }
 
-        await BotClient.Start();
+    private static async Task ApplyMigrations(IServiceProvider provider)
+    {
+        var db = provider.GetService<DataContext>();
+        await db.ApplyMigrations();
     }
 }
