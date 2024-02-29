@@ -1,0 +1,1 @@
+dotnet build  statisticsbot\statisticsbot.csproj --runtime ubuntu.20.04-x64 --configuration release

@@ -13,4 +13,9 @@ public static class ColorExtensions
     {
         return $"#{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
     }
+
+    public static SKColor ToColor(this string colorHex)
+    {
+        return SKColor.TryParse(colorHex, out var result) ? result : SKColor.Empty;
+    }
 }

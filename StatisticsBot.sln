@@ -3,7 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StatisticsBot", "StatisticsBot\StatisticsBot.csproj", "{F62078BF-98F1-486C-A80D-B139F89E22A7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StatisticsBot", "StatisticsBot\StatisticsBot.csproj", "{F62078BF-98F1-486C-A80D-B139F89E22A7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9B1CDB51-53B7-417D-BAE5-C791AEE4C9E9}"
+	ProjectSection(SolutionItems) = preProject
+		BuildScript.bat = BuildScript.bat
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
