@@ -7,10 +7,10 @@ namespace StatisticsBot.Services;
 
 public class RenderService
 {
-    public const int Width = 700;
+    public const int Width = 725;
     public const int Height = 500;
 
-    private const int ListX = 450;
+    private const int ListX = 475;
     private const int ListY = 280;
 
     private static SKColor _background = new SKColor(80, 80, 80);
@@ -20,7 +20,7 @@ public class RenderService
 
     public async Task<byte[]> Generate(List<User> users)
     {
-        users = users.OrderByDescending(x => x.Rank).ToList();
+        users = users.OrderByDescending(x => x.Rank).ThenByDescending(x => x.TotalTasks).ToList();
 
         var recorder = new SKPictureRecorder();
         var canvas = recorder.BeginRecording(SKRect.Create(Width, Height));
@@ -83,7 +83,7 @@ public class RenderService
                     var hColor = user.Color;
 
                     c.DrawRect(ListX, ListY + i * 24, 12, 12, new SKPaint() { Color = hColor, Style = SKPaintStyle.Fill });
-                    c.DrawText($"{user.CodewarsLogin}: {user.TotalTasks} ({user.Rank})", ListX + 17, ListY + i * 24 + 10, _font, p);
+                    c.DrawText($"{user.CodewarsLogin}: {user.Honor} ({user.TotalTasks})", ListX + 17, ListY + i * 24 + 10, _font, p);
                 }
             })
             .Build();

@@ -22,7 +22,7 @@ public class RadarChartGenerator
         _objects = new();
         _features = new();
         _radius = radius;
-        _center = new SKPoint(radius + 5, radius + 5);
+        _center = new SKPoint(radius + 20, radius + 20);
     }
 
     public void SetMax(string feature, float value)
@@ -70,7 +70,7 @@ public class RadarChartGenerator
     public SKImage Render()
     {
         InitMaxValues();
-        _builder = ImageBuilder.Create((int)_radius * 2 + 10, (int)_radius * 2 + 10);
+        _builder = ImageBuilder.Create((int)_radius * 2 + 40, (int)_radius * 2 + 40);
 
         RenderBackground();
         RenderObject(_maxValues, new SKColor(100, 100, 100), true);
@@ -143,6 +143,11 @@ public class RadarChartGenerator
         for (var i = 0; i < _features.Count; i++)
         {
             var point = axisPoints[i];
+            var vec = SKPoint.Normalize(SKPoint.Subtract(point, _center));
+            var offset = 20;
+            vec.X *= offset;
+            vec.Y *= offset;
+
             var featureName = _features[i];
             var turnOver = _center.X - point.X > 1;
             var path = FromPoints(turnOver ? new() { _center, point } : new() { point, _center });
@@ -154,7 +159,8 @@ public class RadarChartGenerator
                 .Paint(p => p.Style = SKPaintStyle.StrokeAndFill)
                 .Paint(p => p.Color = p.Color.SetAlpha(255))
                 .Canvas((c, p) => c.DrawCircle(point, 2, p))
-                .Canvas((c, p) => c.DrawText(_maxValues[featureName].ToString(), SKPoint.Add(point, new SKPoint(10, -10)), p));
+                .Paint(p => p.TextAlign = SKTextAlign.Center)
+                .Canvas((c, p) => c.DrawText(_maxValues[featureName].ToString(), SKPoint.Add(point, vec), p));
         }
     }
 

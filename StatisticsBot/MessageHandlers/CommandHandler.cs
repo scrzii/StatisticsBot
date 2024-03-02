@@ -110,12 +110,22 @@ public class CommandHandler : IUpdateHandler
             user = new User(tgUserId, chatId, args[0]);
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
+
             await bot.SendTextMessageAsync(chatId, $"Логин {args[0]} успешно добавлен");
+
+            await _updateService.UpdateAll();
             return;
         }
 
+        var needUpdate = user.CodewarsLogin != args[0];
+
         user.CodewarsLogin = args[0];
         await _db.SaveChangesAsync();
+
+        if (needUpdate)
+        {
+            await _updateService.UpdateAll();
+        }
     }
 
     private async Task RemoveCodewarsLogin(ITelegramBotClient bot, long chatId, bool isFromAdmin, string[] args)

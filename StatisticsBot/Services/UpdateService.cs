@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SkiaSharp;
 using StatisticsBot.Extensions;
-using StatisticsBot.ResultParser;
 using StatisticsBot.Services.Data;
 using StatisticsBot.Services.Data.Models;
+using StatisticsBot.Services.Parsing;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using User = StatisticsBot.Services.Data.Models.User;
 
 namespace StatisticsBot.Services;
 public class UpdateService
@@ -30,18 +30,67 @@ public class UpdateService
     public async Task UpdateUsers()
     {
         var users = await _db.Users.ToDictionaryAsync(x => x.CodewarsLogin);
-        var infos = await InfoParser.GetInfos(users.Select(x => x.Value.CodewarsLogin).ToArray());
+        var infos = (await GetCWData(users.Keys.ToList())).Where(x => x.IsCorrect);
 
         foreach (var info in infos)
         {
             var user = users[info.Name];
+
+            await CheckUpdate(user, info);
+
             user.Honor = info.Honor;
-            user.TotalTasks = info.TasksCount;
+            user.TotalTasks = info.TotalTasks;
             user.Rank = info.Rank;
             user.LastUpdate = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
         }
+    }
+
+    private async Task<List<UserDto>> GetCWData(List<string> logins)
+    {
+        var result = new List<UserDto>();
+        foreach (var login in logins)
+        {
+            var parser = new CodewarsUserParser(login);
+            result.Add(await parser.Parse());
+        }
+
+        return result;
+    }
+
+    private async Task CheckUpdate(User user, UserDto dto)
+    {
+        if (dto.TotalTasks <= user.TotalTasks || dto.Honor <= user.Honor)
+        {
+            return;
+        }
+
+        if (user.Honor == null)
+        {
+            return;
+        }
+
+        var diff = dto.Honor - user.Honor;
+        var isRankUp = dto.Rank > user.Rank;
+
+        var messageText = $"[{user.CodewarsLogin}](tg://user?id={user.TelegramId}) решил задачу (+{diff} рейтинга).";
+        if (isRankUp)
+        {
+            messageText += $"\nНовый ранг: {GetRankName((int) dto.Rank)}";
+        }
+
+        await _db.Notifications.AddAsync(new(messageText, user.ChatId));
+    }
+
+    private string GetRankName(int rank)
+    {
+        if (rank < 8)
+        {
+            return $"{8 - rank} кю";
+        }
+
+        return $"{rank - 7} дан";
     }
 
     public async Task UpdateChart()
@@ -55,7 +104,7 @@ public class UpdateService
             var users = group.ToList();
             var bytes = await _renderService.Generate(users);
             using var stream = new MemoryStream();
-            
+
             await stream.WriteAllBytes(bytes);
 
             var filename = "chart.png";
@@ -89,17 +138,5 @@ public class UpdateService
                 stream.Dispose();
             }
         }
-    }
-
-    private static async Task<InputFile> CreateFileFromBytes(byte[] bytes, string filename)
-    {
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream);
-        foreach (var chunk in bytes.Chunk(32))
-        {
-            await stream.WriteAsync(chunk.ToArray());
-        }
-
-        return InputFile.FromStream(stream, filename);
     }
 }

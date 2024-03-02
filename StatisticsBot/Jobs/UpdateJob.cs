@@ -1,5 +1,6 @@
 ﻿using Quartz;
 using StatisticsBot.Services;
+using System.Runtime.Serialization;
 
 namespace StatisticsBot.Jobs;
 
@@ -16,8 +17,7 @@ public class UpdateJob : IJob
     {
         try
         {
-            await _service.UpdateUsers();
-            await _service.UpdateChart();
+            await _service.UpdateAll();
         }
         catch (Exception ex)
         {

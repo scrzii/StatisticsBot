@@ -13,7 +13,7 @@ public static class DI
     public static IServiceProvider ConfigureServices()
     {
         var services = new ServiceCollection();
-        services.AddDbContext<DataContext>();
+        services.AddDbContext<DataContext>(ServiceLifetime.Transient);
         services.AddBot();
         services.AddJobs();
 
@@ -33,5 +33,6 @@ public static class DI
     private static void AddJobs(this IServiceCollection services)
     {
         services.AddTransient<UpdateJob>();
+        services.AddTransient<NotificationJob>();
     }
 }
