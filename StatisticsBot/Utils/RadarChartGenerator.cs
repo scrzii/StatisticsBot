@@ -15,12 +15,14 @@ public class RadarChartGenerator
     private readonly float _startAngle = (float)(Math.PI / 6);
     private readonly SKFont _font = new SKFont(SKTypeface.FromFamilyName("Cascadia Mono",
         new SKFontStyle(1, 0, SKFontStyleSlant.Upright)), 14);
+    private readonly HashSet<string> _withPoints;
 
     public RadarChartGenerator(float radius)
     {
         _maxValues = new();
         _objects = new();
         _features = new();
+        _withPoints = new();
         _radius = radius;
         _center = new SKPoint(radius + 20, radius + 20);
     }
@@ -65,6 +67,11 @@ public class RadarChartGenerator
     public void RegisterFeatures(params string[] names)
     {
         names.ToList().ForEach(x => RegisterFeature(x));
+    }
+
+    public void SetWithPoints(string feature)
+    {
+        _withPoints.Add(feature);
     }
 
     public SKImage Render()
@@ -161,6 +168,18 @@ public class RadarChartGenerator
                 .Canvas((c, p) => c.DrawCircle(point, 2, p))
                 .Paint(p => p.TextAlign = SKTextAlign.Center)
                 .Canvas((c, p) => c.DrawText(_maxValues[featureName].ToString(), SKPoint.Add(point, vec), p));
+
+            if (_withPoints.Contains(featureName))
+            {
+                for (var j = 0; j < _maxValues[featureName]; j++)
+                {
+                    var pointVec = SKPoint.Normalize(vec);
+                    pointVec.X *= _radius / _maxValues[featureName] * j;
+                    pointVec.Y *= _radius / _maxValues[featureName] * j;
+                    _builder = _builder
+                        .Canvas((c, p) => c.DrawCircle(SKPoint.Add(_center, pointVec), 2, p));
+                }
+            }
         }
     }
 

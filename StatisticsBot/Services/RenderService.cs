@@ -96,6 +96,7 @@ public class RenderService
         var radar = new RadarChartGenerator(200);
         radar.RegisterFeatures("TotalTasks", "Honor", "Rank");
         radar.SetMax("Rank", 9);
+        radar.SetWithPoints("Rank");
         foreach (var user in users)
         {
             radar.AddObject(user.Color, user);
