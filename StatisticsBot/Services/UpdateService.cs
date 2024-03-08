@@ -3,6 +3,7 @@ using StatisticsBot.Extensions;
 using StatisticsBot.Services.Data;
 using StatisticsBot.Services.Data.Models;
 using StatisticsBot.Services.Parsing;
+using StatisticsBot.Utils;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using User = StatisticsBot.Services.Data.Models.User;
@@ -30,7 +31,7 @@ public class UpdateService
     public async Task UpdateUsers()
     {
         var users = await _db.Users.ToDictionaryAsync(x => x.CodewarsLogin);
-        var infos = (await GetCWData(users.Keys.ToList())).Where(x => x.IsCorrect);
+        var infos = (await GetCodewarsData(users.Keys.ToList())).Where(x => x.IsCorrect);
 
         foreach (var info in infos)
         {
@@ -47,12 +48,12 @@ public class UpdateService
         }
     }
 
-    private async Task<List<UserDto>> GetCWData(List<string> logins)
+    private async Task<List<UserDto>> GetCodewarsData(List<string> logins)
     {
         var result = new List<UserDto>();
         foreach (var login in logins)
         {
-            var parser = new CodewarsUserParser(login);
+            var parser = new CodewarsParser(login);
             result.Add(await parser.Parse());
         }
 
@@ -73,24 +74,17 @@ public class UpdateService
 
         var diff = dto.Honor - user.Honor;
         var isRankUp = dto.Rank > user.Rank;
+        var parser = new CodewarsParser(dto.Name);
+        var task = await parser.GetLastTask();
 
-        var messageText = $"[{user.CodewarsLogin}](tg://user?id={user.TelegramId}) решил задачу (+{diff} рейтинга).";
+        var messageText = $"[{user.CodewarsLogin}](tg://user?id={user.TelegramId}) решил [задачу]({task.Url}) " +
+            $"на {RankUtil.ToStringRu((int)task.Difficulty)} (+{diff} рейтинга).";
         if (isRankUp)
         {
-            messageText += $"\nНовый ранг: {GetRankName((int) dto.Rank)}";
+            messageText += $"\nИ апнул новый ранг: {RankUtil.ToStringRu((int) dto.Rank)}";
         }
 
         await _db.Notifications.AddAsync(new(messageText, user.ChatId));
-    }
-
-    private string GetRankName(int rank)
-    {
-        if (rank < 8)
-        {
-            return $"{8 - rank} кю";
-        }
-
-        return $"{rank - 7} дан";
     }
 
     public async Task UpdateChart()

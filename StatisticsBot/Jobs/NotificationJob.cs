@@ -28,7 +28,7 @@ public class NotificationJob : IJob
         foreach (var notification in notifications)
         {
             await _bot.SendTextMessageAsync(notification.ChatId, notification.Message,
-                parseMode: notification.WithMarkup ? ParseMode.Markdown : ParseMode.Html);
+                parseMode: notification.WithMarkup ? ParseMode.Markdown : ParseMode.Html, disableWebPagePreview: true);
             await Task.Delay(1000);
         }
 

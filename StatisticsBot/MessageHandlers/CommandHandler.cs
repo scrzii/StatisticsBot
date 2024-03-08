@@ -22,8 +22,8 @@ public class CommandHandler : IUpdateHandler
         _updateService = updateService;
     }
 
-    private const string SetCWCommand = "setcw";
-    private const string RemoveCWCommand = "removecw";
+    private const string SetCodewarsLoginCommand = "setcw";
+    private const string RemoveCodewarsLoginCommand = "removecw";
     private const string ChangeColorCommand = "changecolor";
 
     public async Task HandleUpdateAsync(ITelegramBotClient bot, Update update, CancellationToken cancellationToken)
@@ -62,10 +62,10 @@ public class CommandHandler : IUpdateHandler
         {
             switch (command)
             {
-                case SetCWCommand:
+                case SetCodewarsLoginCommand:
                     await SetCodewarsLogin(bot, update.Message.Chat.Id, update.Message.From.Id, args);
                     break;
-                case RemoveCWCommand:
+                case RemoveCodewarsLoginCommand:
                     await RemoveCodewarsLogin(bot, update.Message.Chat.Id, isFromAdmin, args);
                     break;
                 case ChangeColorCommand:

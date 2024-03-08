@@ -28,7 +28,7 @@ namespace StatisticsBot.Services.Data.Migrations
 
                     b.HasKey("ChatId");
 
-                    b.ToTable("ChartMessages");
+                    b.ToTable("ChartMessages", (string)null);
                 });
 
             modelBuilder.Entity("StatisticsBot.Services.Data.Models.Notification", b =>
@@ -50,7 +50,7 @@ namespace StatisticsBot.Services.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("StatisticsBot.Services.Data.Models.User", b =>
@@ -86,7 +86,7 @@ namespace StatisticsBot.Services.Data.Migrations
 
                     b.HasKey("TelegramId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 #pragma warning restore 612, 618
         }
