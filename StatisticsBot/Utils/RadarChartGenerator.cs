@@ -13,7 +13,7 @@ public class RadarChartGenerator
     private readonly SKPoint _center;
     private ImageBuilder _builder;
     private readonly float _startAngle = (float)(Math.PI / 6);
-    private readonly SKFont _font = new SKFont(SKTypeface.FromFamilyName("Cascadia Mono",
+    private readonly SKFont _font = new SKFont(SKTypeface.FromFamilyName("Cambria",
         new SKFontStyle(1, 0, SKFontStyleSlant.Upright)), 14);
     private readonly HashSet<string> _withPoints;
 
@@ -160,17 +160,18 @@ public class RadarChartGenerator
             var path = FromPoints(turnOver ? new() { _center, point } : new() { point, _center });
             _builder = _builder
                 .Paint(p => p.Color = p.Color.SetAlpha(128))
-                .Paint(p => p.TextAlign = turnOver ? SKTextAlign.Center : SKTextAlign.Center)
+                .Paint(p => p.Style = SKPaintStyle.Stroke)
                 .Canvas((c, p) => c.DrawPath(path, p))
-                .Canvas((c, p) => c.DrawTextOnPath(featureName, path, new SKPoint(_radius / 4, -15f), false, _font, p))
-                .Paint(p => p.Style = SKPaintStyle.StrokeAndFill)
                 .Paint(p => p.Color = p.Color.SetAlpha(255))
                 .Canvas((c, p) => c.DrawCircle(point, 2, p))
-                .Paint(p => p.TextAlign = SKTextAlign.Center)
-                .Canvas((c, p) => c.DrawText(_maxValues[featureName].ToString(), SKPoint.Add(point, vec), p));
+                .Paint(p => p.Style = SKPaintStyle.Fill)
+                .Canvas((c, p) => c.DrawText(_maxValues[featureName].ToString(), point.X + vec.X, point.Y + vec.Y, _font, p))
+                .Paint(p => p.Color = p.Color.SetAlpha(128))
+                .Canvas((c, p) => c.DrawTextOnPath(featureName, path, new SKPoint(_radius / 4, -15f), false, _font, p));
 
             if (_withPoints.Contains(featureName))
             {
+                _builder = _builder.Paint(p => p.Style = SKPaintStyle.Stroke);
                 for (var j = 0; j < _maxValues[featureName]; j++)
                 {
                     var pointVec = SKPoint.Normalize(vec);

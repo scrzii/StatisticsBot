@@ -14,7 +14,7 @@ public class RenderService
     private const int ListY = 280;
 
     private static SKColor _background = new SKColor(80, 80, 80);
-    private static SKFont _font = new SKFont(SKTypeface.FromFamilyName("Cascadia Mono",
+    private static SKFont _font = new SKFont(SKTypeface.FromFamilyName("Cambria",
         new SKFontStyle(1, 0, SKFontStyleSlant.Upright)), 14);
 
 
