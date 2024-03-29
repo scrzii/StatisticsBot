@@ -42,13 +42,13 @@ public class CommandHandler : IUpdateHandler
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Exception throwed: {ex.Message}");
+            Console.WriteLine($"Exception throwed: {ex}");
         }
     }
 
     public async Task HandlePollingErrorAsync(ITelegramBotClient bot, Exception exception, CancellationToken cancellationToken)
     {
-        Console.WriteLine($"Update exception: {exception.Message}");
+        Console.WriteLine($"Update exception: {exception}");
     }
 
     private async Task HandleCommand(ITelegramBotClient bot, Update update)

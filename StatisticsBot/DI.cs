@@ -26,8 +26,7 @@ public static class DI
 
     private static void AddBot(this IServiceCollection services)
     {
-        var bot = new TelegramBotClient(Config.Instance.TelegramToken);
-        services.AddSingleton<ITelegramBotClient>(bot);
+        services.AddTransient<ITelegramBotClient>(x => new TelegramBotClient(Config.Instance.TelegramToken));
     }
 
     private static void AddJobs(this IServiceCollection services)

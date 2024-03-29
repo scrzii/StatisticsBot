@@ -21,7 +21,7 @@ public class UpdateJob : IJob
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Job exception: {ex.Message}");
+            Console.WriteLine($"Job exception: {ex}");
         }
     }
 }

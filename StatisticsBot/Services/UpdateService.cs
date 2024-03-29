@@ -125,7 +125,7 @@ public class UpdateService
             {
                 _db.ChartMessages.Remove(dbMessage);
                 await _db.SaveChangesAsync();
-                Console.WriteLine($"Update chart exception: {ex.Message}");
+                Console.WriteLine($"Update chart exception: {ex}");
             }
             finally
             {
