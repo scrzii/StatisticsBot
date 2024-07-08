@@ -92,9 +92,9 @@ public class CodewarsParser
 
     private async Task<dynamic> GetResult(string url)
     {
-        var client = new HttpClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
-        var response = await client.SendAsync(request);
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var response = await client.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -107,9 +107,9 @@ public class CodewarsParser
 
     private async Task<string> GetResultString(string url)
     {
-        var client = new HttpClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
-        var response = await client.SendAsync(request);
+        using var client = new HttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var response = await client.SendAsync(request);
 
         if (!response.IsSuccessStatusCode)
         {
